@@ -11,7 +11,7 @@ CONFIG_FILE = "scripts.json"
 # --- Constants & Colors ---
 BG_COLOR = "#121212"
 SURFACE_COLOR = "#1e1e1e" 
-ACCENT_COLOR = "#BB86FC" # Vivid Purple for modern feel
+ACCENT_COLOR = "#BB86FC"
 TEXT_MAIN = "#FFFFFF"
 TEXT_SEC = "#B3B3B3"
 BUTTON_BG = "#2C2C2C"
@@ -59,12 +59,25 @@ class AutoClickerApp(tk.Tk):
         # Status Label
         self.style.configure("Status.TLabel", font=("Segoe UI", 12, "bold"), background=SURFACE_COLOR)
 
-        # Inputs (Entry) - simple flat look
-        self.style.configure("TEntry", fieldbackground=BUTTON_BG, foreground=TEXT_MAIN, insertcolor=TEXT_MAIN, borderwidth=0, padding=5)
+        # Inputs (Entry) - More defined look with better border
+        self.style.configure("TEntry", fieldbackground="#2C2C2C", foreground=TEXT_MAIN, insertcolor=TEXT_MAIN, 
+                             borderwidth=0, padding=10)
         
-        # Combobox
-        self.style.configure("TCombobox", fieldbackground=BUTTON_BG, background=BUTTON_BG, foreground=TEXT_MAIN, arrowcolor=TEXT_MAIN, borderwidth=0, padding=5)
-        self.style.map("TCombobox", fieldbackground=[("readonly", BUTTON_BG)], selectbackground=[("readonly", BUTTON_BG)], selectforeground=[("readonly", TEXT_MAIN)])
+        # Combobox - Matching Entry style
+        self.style.configure("TCombobox", fieldbackground="#2C2C2C", background="#2C2C2C", foreground=TEXT_MAIN, 
+                             arrowcolor=ACCENT_COLOR, borderwidth=0, padding=10)
+        self.style.map("TCombobox", fieldbackground=[("readonly", "#2C2C2C")], 
+                                    selectbackground=[("readonly", "#2C2C2C")], 
+                                    selectforeground=[("readonly", TEXT_MAIN)])
+
+        # Fix for the white dropdown menu (Popdown)
+        self.option_add('*TCombobox*Listbox.background', '#2C2C2C')
+        self.option_add('*TCombobox*Listbox.foreground', TEXT_MAIN)
+        self.option_add('*TCombobox*Listbox.selectBackground', ACCENT_COLOR)
+        self.option_add('*TCombobox*Listbox.selectForeground', '#000000')
+        self.option_add('*TCombobox*Listbox.font', ("Segoe UI", 10))
+        self.option_add('*TCombobox*Listbox.relief', 'flat')
+        self.option_add('*TCombobox*Listbox.borderwidth', '0')
 
         # Custom Radio Styling (Hidden standard, custom visual could be done, but simple clean radio for now)
         self.style.configure("TRadiobutton", background=SURFACE_COLOR, foreground=TEXT_MAIN, font=("Segoe UI", 10), indicatorcolor=ACCENT_COLOR)
