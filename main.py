@@ -290,17 +290,6 @@ class AutoClickerApp(tk.Tk):
         ttk.Label(title_row, text="AutoClicker", style="Title.TLabel").pack(
             side=tk.LEFT, anchor="w")
 
-        # version badge
-        badge = tk.Canvas(title_row, width=36, height=20, bg=S["bg"],
-                          highlightthickness=0, bd=0)
-        badge.pack(side=tk.RIGHT, anchor="e", pady=(8, 0))
-        badge.create_oval(0, 0, 36, 20, fill=S["surface2"], outline=S["border"])
-        badge.create_text(18, 10, text="v2", fill=S["text_sec"],
-                          font=(FONT, 7, "bold"))
-
-        ttk.Label(container, text="Professional Auto-Clicking Utility",
-                  style="Subtitle.TLabel").pack(anchor="w", pady=(0, 16))
-
         # ── Status Card ────────────────────────────────────
         status_card = ttk.Frame(container, style="Card.TFrame", padding=(18, 14))
         status_card.pack(fill=tk.X, pady=(0, 14))
