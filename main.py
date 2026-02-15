@@ -9,21 +9,22 @@ from clicker import AutoClicker
 CONFIG_FILE = "scripts.json"
 
 # ─── Theme ──────────────────────────────────────────────────────────────────────
+# ─── Theme ──────────────────────────────────────────────────────────────────────
 THEME = {
-    "bg":           "#0D0D0D",
-    "surface":      "#161619",
-    "surface2":     "#1C1C22",
-    "border":       "#28283A",
-    "accent":       "#7C5CFC",
-    "accent_hover": "#9B7FFF",
-    "accent_dim":   "#5A3FD4",
-    "success":      "#00E5A0",
-    "error":        "#FF5C7C",
-    "text":         "#F0F0F0",
-    "text_sec":     "#6E6E82",
-    "text_dim":     "#44445A",
-    "input_bg":     "#131318",
-    "input_border": "#28283A",
+    "bg":           "#121212",      # Deep matte black/gray
+    "surface":      "#1E1E1E",      # Slightly lighter for cards
+    "surface2":     "#252526",      # For inputs/hovers
+    "border":       "#333333",      # Subtle borders
+    "accent":       "#3B8ED0",      # Modern blue (VS Code-ish)
+    "accent_hover": "#4D9FE3",
+    "accent_dim":   "#2A6A9E",
+    "success":      "#4CAF50",      # Muted vibrant green
+    "error":        "#E53935",      # Muted vibrant red
+    "text":         "#E0E0E0",      # Soft white
+    "text_sec":     "#AAAAAA",      # Secondary text
+    "text_dim":     "#666666",      # Disabled/Hint text
+    "input_bg":     "#2D2D2D",      # Inputs should stand out slightly from surface or be recessed
+    "input_border": "#3E3E42",
 }
 
 FONT        = "Segoe UI"
@@ -32,18 +33,18 @@ FONT_MONO   = "Consolas"
 # ─── Custom Widgets ─────────────────────────────────────────────────────────────
 
 class AccentButton(tk.Canvas):
-    """A modern, rounded-look button drawn on a Canvas."""
+    """A modern, flat-style button drawn on a Canvas."""
     def __init__(self, master, text="", command=None, bg=None, fg=None,
-                 hover_bg=None, font_spec=None, height=46, **kw):
+                 hover_bg=None, font_spec=None, height=44, **kw):
         super().__init__(master, highlightthickness=0, bd=0, bg=THEME["bg"], **kw)
         self._text = text
         self._command = command
         self._bg = bg or THEME["accent"]
-        self._fg = fg or "#000000"
+        self._fg = fg or "#FFFFFF"
         self._hover_bg = hover_bg or THEME["accent_hover"]
-        self._font = font_spec or (FONT, 11, "bold")
+        self._font = font_spec or (FONT, 10, "bold")
         self._h = height
-        self._radius = 10
+        self._radius = 6 # Subtler rounded corners
         self._pressed = False
 
         self.configure(height=self._h)
@@ -64,7 +65,14 @@ class AccentButton(tk.Canvas):
     def _draw(self, event=None):
         self.delete("all")
         w, h = self.winfo_width(), self.winfo_height()
-        self._round_rect(0, 0, w, h, self._radius, fill=self._bg, outline="")
+        
+        # Draw background
+        bg = self._bg
+        if self._pressed:
+            # Darken slightly on press
+            bg = self._bg # Could blend, but keeping simple for now
+            
+        self._round_rect(0, 0, w, h, self._radius, fill=bg, outline="")
         self.create_text(w/2, h/2, text=self._text, fill=self._fg,
                          font=self._font, anchor="center")
 
@@ -76,15 +84,18 @@ class AccentButton(tk.Canvas):
 
     def _on_leave(self, e):
         self._bg = getattr(self, '_bg_saved', self._bg)
+        self._pressed = False # Reset press state
         self._draw()
 
     def _on_press(self, e):
         self._pressed = True
+        self._draw()
 
     def _on_release(self, e):
         if self._pressed and self._command:
             self._command()
         self._pressed = False
+        self._draw()
 
     def set_config(self, **kw):
         if "text" in kw:   self._text = kw["text"]
@@ -95,17 +106,18 @@ class AccentButton(tk.Canvas):
 
 
 class SmallButton(tk.Canvas):
-    """Compact utility button (e.g., +, x, 🗑)."""
-    def __init__(self, master, text="", command=None, fg=None, size=28, **kw):
+    """Compact utility button (e.g., +, x, 🗑). Transparent unless hovered."""
+    def __init__(self, master, text="", icon=None, command=None, fg=None, size=28, **kw):
         super().__init__(master, width=size, height=size,
                          highlightthickness=0, bd=0, bg=THEME["surface"], **kw)
         self._text = text
+        self._icon = icon
         self._command = command
         self._fg = fg or THEME["text_sec"]
         self._fg_hover = THEME["text"]
         self._size = size
-        self._r = 6
         self._pressed = False
+        self._hovering = False
 
         self.bind("<Configure>", self._draw)
         self.bind("<Enter>", lambda e: self._hover(True))
@@ -116,12 +128,43 @@ class SmallButton(tk.Canvas):
     def _draw(self, event=None, fill_fg=None):
         self.delete("all")
         s = self._size
-        # subtle bg circle
-        self.create_oval(2, 2, s-2, s-2, fill=THEME["surface2"], outline="")
-        self.create_text(s/2, s/2, text=self._text, fill=fill_fg or self._fg,
-                        font=(FONT, 11, "bold"), anchor="center")
+        color = fill_fg or self._fg
+
+        # Only draw bg if hovering
+        if self._hovering:
+            self.create_oval(2, 2, s-2, s-2, fill=THEME["surface2"], outline="")
+
+        if self._icon == "trash":
+            self._draw_trash(s, color)
+        else:
+            self.create_text(s/2, s/2, text=self._text, fill=color,
+                            font=(FONT, 12, "bold"), anchor="center")
+
+    def _draw_trash(self, s, color):
+        # Center approx at s/2, s/2. s=28.
+        cx, cy = s/2, s/2
+        
+        # Bin body
+        # width ~10, height ~12
+        x1, y1 = cx - 5, cy - 4
+        x2, y2 = cx + 5, cy + 8
+        self.create_rectangle(x1, y1, x2, y2, outline=color, width=1.5)
+        
+        # Lid
+        lx1, ly1 = cx - 6, cy - 6
+        lx2, ly2 = cx + 6, cy - 4
+        self.create_line(lx1, ly1, lx2, ly1, fill=color, width=1.5)
+        # Handle
+        hx1, hy1 = cx - 2, cy - 7   
+        hx2, hy2 = cx + 2, cy - 7
+        self.create_line(hx1, hy1, hx2, hy1, fill=color, width=1.5)
+
+        # Vertical lines
+        self.create_line(cx-2, y1+2, cx-2, y2-2, fill=color, width=1)
+        self.create_line(cx+2, y1+2, cx+2, y2-2, fill=color, width=1)
 
     def _hover(self, on):
+        self._hovering = on
         self._draw(fill_fg=self._fg_hover if on else self._fg)
         self.configure(cursor="hand2" if on else "")
     
@@ -156,66 +199,61 @@ class AutoClickerApp(tk.Tk):
         self.style.configure("Card.TFrame", background=S["surface"])
         self.style.configure("TLabel", background=S["bg"], foreground=S["text"],
                              font=(FONT, 10))
-        self.style.configure("Title.TLabel", font=(FONT, 22, "bold"),
-                             foreground=S["accent"], background=S["bg"])
+        self.style.configure("Title.TLabel", font=(FONT, 20, "bold"),
+                             foreground=S["text"], background=S["bg"])
         self.style.configure("Subtitle.TLabel", font=(FONT, 9),
-                             foreground=S["text_dim"], background=S["bg"])
+                             foreground=S["text_sec"], background=S["bg"])
         self.style.configure("Section.TLabel", font=(FONT, 9, "bold"),
                              foreground=S["text_sec"], background=S["surface"])
         self.style.configure("Card.TLabel", background=S["surface"],
                              foreground=S["text_sec"], font=(FONT, 9))
-        self.style.configure("Status.TLabel", font=(FONT, 13, "bold"),
+        self.style.configure("Status.TLabel", font=(FONT, 12, "bold"),
                              background=S["surface"])
 
         # Entry
         self.style.configure("TEntry",
             fieldbackground=S["input_bg"], foreground=S["text"],
-            insertcolor=S["text"], borderwidth=1, padding=10,
+            insertcolor=S["text"], borderwidth=0, padding=10,
             relief="flat",
-            bordercolor=S["input_border"],
-            lightcolor=S["input_border"],
-            darkcolor=S["input_border"])
+            bordercolor=S["input_bg"], # match bg to look borderless
+            lightcolor=S["input_bg"],
+            darkcolor=S["input_bg"])
         self.style.map("TEntry",
-            bordercolor=[("focus", S["accent"])],
+            bordercolor=[("focus", S["accent"])], # Subtle hint if needed, or keep flat
             lightcolor=[("focus", S["accent"])],
             darkcolor=[("focus", S["accent"])])
 
         # Combobox
         self.style.configure("TCombobox",
             fieldbackground=S["input_bg"], background=S["input_bg"],
-            foreground=S["text"], arrowcolor=S["accent"], arrowsize=14,
-            borderwidth=1, padding=10, relief="flat",
-            bordercolor=S["input_border"],
-            lightcolor=S["input_border"],
-            darkcolor=S["input_border"])
+            foreground=S["text"], arrowcolor=S["text_sec"], arrowsize=14,
+            borderwidth=0, padding=10, relief="flat",
+            selectbackground=S["input_bg"], selectforeground=S["text"],
+            bordercolor=S["input_bg"], # match bg
+            lightcolor=S["input_bg"],
+            darkcolor=S["input_bg"])
         self.style.map("TCombobox",
             fieldbackground=[("readonly", S["input_bg"])],
             selectbackground=[("readonly", S["input_bg"])],
             selectforeground=[("readonly", S["text"])],
-            bordercolor=[("focus", S["accent"])],
-            lightcolor=[("focus", S["accent"])],
-            darkcolor=[("focus", S["accent"])],
-            arrowcolor=[("pressed", S["success"]), ("active", S["accent_hover"])])
+            bordercolor=[("focus", S["input_bg"])],
+            arrowcolor=[("pressed", S["text"]), ("active", S["text"])])
 
         # Dark dropdown popdown - Enhanced styling
         self.option_add('*TCombobox*Listbox.background', S["surface2"])
         self.option_add('*TCombobox*Listbox.foreground', S["text"])
         self.option_add('*TCombobox*Listbox.selectBackground', S["accent"])
-        self.option_add('*TCombobox*Listbox.selectForeground', '#000000')
+        self.option_add('*TCombobox*Listbox.selectForeground', '#FFFFFF')
         self.option_add('*TCombobox*Listbox.font', (FONT, 10))
-        self.option_add('*TCombobox*Listbox.relief', 'solid')
-        self.option_add('*TCombobox*Listbox.borderwidth', '1')
-        self.option_add('*TCombobox*Listbox.bd', S["border"])
+        self.option_add('*TCombobox*Listbox.relief', 'flat')
+        self.option_add('*TCombobox*Listbox.borderwidth', '0')
         self.option_add('*TCombobox*Listbox.highlightThickness', '0')
-        self.option_add('*TCombobox*Listbox.activestyle', 'none')
-        # Add padding between items
-        self.option_add('*TCombobox*Listbox.highlightBackground', S["border"])
-        self.option_add('*TCombobox*Listbox.highlightColor', S["border"])
 
         # Radiobutton
         self.style.configure("TRadiobutton",
             background=S["surface"], foreground=S["text"],
-            font=(FONT, 10), indicatorcolor=S["border"])
+            font=(FONT, 10), indicatorcolor=S["input_bg"], 
+            padding=4)
         self.style.map("TRadiobutton",
             background=[("active", S["surface"])],
             indicatorcolor=[("selected", S["accent"])])
@@ -227,10 +265,10 @@ class AutoClickerApp(tk.Tk):
                              {'expand': '1', 'sticky': 'nswe'})],
                'sticky': 'ns'})])
         self.style.configure("Vertical.TScrollbar",
-            troughcolor=S["input_bg"], background=S["border"],
+            troughcolor=S["surface"], background=S["border"],
             borderwidth=0, relief="flat", arrowsize=0)
         self.style.map("Vertical.TScrollbar",
-            background=[("active", S["accent"])])
+            background=[("active", S["text_sec"])])
 
         # ── Logic Init ──
         self.clicker = AutoClicker()
@@ -285,25 +323,25 @@ class AutoClickerApp(tk.Tk):
 
         # ── Title Row ──────────────────────────────────────
         title_row = ttk.Frame(container)
-        title_row.pack(fill=tk.X, pady=(0, 4))
+        title_row.pack(fill=tk.X, pady=(0, 20)) # More breathing room
 
         ttk.Label(title_row, text="AutoClicker", style="Title.TLabel").pack(
             side=tk.LEFT, anchor="w")
 
         # ── Status Card ────────────────────────────────────
-        status_card = ttk.Frame(container, style="Card.TFrame", padding=(18, 14))
-        status_card.pack(fill=tk.X, pady=(0, 14))
+        status_card = ttk.Frame(container, style="Card.TFrame", padding=(20, 16))
+        status_card.pack(fill=tk.X, pady=(0, 20))
 
         ttk.Label(status_card, text="STATUS", style="Section.TLabel").pack(
             anchor="w")
 
         status_row = ttk.Frame(status_card, style="Card.TFrame")
-        status_row.pack(fill=tk.X, pady=(10, 0))
+        status_row.pack(fill=tk.X, pady=(12, 0))
 
-        self.status_dot = tk.Canvas(status_row, width=14, height=14,
+        self.status_dot = tk.Canvas(status_row, width=12, height=12,
             bg=S["surface"], highlightthickness=0, bd=0)
-        self.status_dot.pack(side=tk.LEFT, padx=(0, 10))
-        self.status_dot.create_oval(2, 2, 12, 12, fill=S["error"],
+        self.status_dot.pack(side=tk.LEFT, padx=(0, 12))
+        self.status_dot.create_oval(1, 1, 11, 11, fill=S["error"],
                                     outline="", tags="dot")
 
         self.status_var = tk.StringVar(value="STOPPED")
@@ -312,17 +350,17 @@ class AutoClickerApp(tk.Tk):
         self.lbl_status.pack(side=tk.LEFT)
 
         # ── Configuration Card ─────────────────────────────
-        ctrl_card = ttk.Frame(container, style="Card.TFrame", padding=(18, 14))
-        ctrl_card.pack(fill=tk.BOTH, expand=True, pady=(0, 14))
+        ctrl_card = ttk.Frame(container, style="Card.TFrame", padding=(20, 16))
+        ctrl_card.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
 
         ttk.Label(ctrl_card, text="CONFIGURATION", style="Section.TLabel").pack(
-            anchor="w", pady=(0, 12))
+            anchor="w", pady=(0, 16))
 
         # Mouse Button
         btn_frame = ttk.Frame(ctrl_card, style="Card.TFrame")
-        btn_frame.pack(fill=tk.X, pady=(0, 10))
+        btn_frame.pack(fill=tk.X, pady=(0, 16))
         ttk.Label(btn_frame, text="Mouse Button", style="Card.TLabel").pack(
-            anchor="w", pady=(0, 3))
+            anchor="w", pady=(0, 6))
         self.click_btn_var = tk.StringVar(
             value=self.config.get("click_button", "left").title())
         self.combo_btn = ttk.Combobox(btn_frame, textvariable=self.click_btn_var,
@@ -330,22 +368,19 @@ class AutoClickerApp(tk.Tk):
         self.combo_btn.pack(fill=tk.X)
         self.combo_btn.bind("<<ComboboxSelected>>", self.on_btn_change)
 
-        # Separator
-        sep = tk.Canvas(ctrl_card, height=1, bg=S["surface"], highlightthickness=0, bd=0)
-        sep.pack(fill=tk.X, pady=(4, 10))
-        sep.bind("<Configure>",
-            lambda e: sep.delete("all") or
-                      sep.create_line(0, 0, e.width, 0, fill=S["border"]))
+        # Separator (Simplified)
+        sep = tk.Frame(ctrl_card, height=1, bg=S["border"])
+        sep.pack(fill=tk.X, pady=(4, 16))
 
         # Mode Radio
         mode_frame = ttk.Frame(ctrl_card, style="Card.TFrame")
-        mode_frame.pack(fill=tk.X, pady=(0, 12))
+        mode_frame.pack(fill=tk.X, pady=(0, 16))
 
         self.mode_var = tk.StringVar(value="fixed")
         ttk.Radiobutton(mode_frame, text="Fixed Interval",
                         variable=self.mode_var, value="fixed",
                         command=self.toggle_mode_ui).pack(side=tk.LEFT,
-                                                          padx=(0, 18))
+                                                          padx=(0, 24))
         ttk.Radiobutton(mode_frame, text="Script Mode",
                         variable=self.mode_var, value="sequence",
                         command=self.toggle_mode_ui).pack(side=tk.LEFT)
@@ -357,7 +392,7 @@ class AutoClickerApp(tk.Tk):
         # ── Fixed Interval UI ──────────────────────────────
         self.frame_fixed = ttk.Frame(self.settings_frame, style="Card.TFrame")
         ttk.Label(self.frame_fixed, text="Interval (ms)", style="Card.TLabel").pack(
-            anchor="w", pady=(0, 3))
+            anchor="w", pady=(0, 6))
         self.entry_interval = ttk.Entry(self.frame_fixed, font=(FONT, 11))
         self.entry_interval.insert(0, str(self.config.get("normal_interval_ms", 100)))
         self.entry_interval.pack(fill=tk.X)
@@ -368,12 +403,12 @@ class AutoClickerApp(tk.Tk):
 
         # Script header (label + buttons)
         script_header = ttk.Frame(self.frame_script, style="Card.TFrame")
-        script_header.pack(fill=tk.X, pady=(0, 6))
+        script_header.pack(fill=tk.X, pady=(0, 8))
 
         ttk.Label(script_header, text="Profile", style="Card.TLabel").pack(
             side=tk.LEFT)
 
-        self.btn_del_profile = SmallButton(script_header, text="🗑",
+        self.btn_del_profile = SmallButton(script_header, icon="trash",
             command=self.delete_profile, fg=S["error"])
         self.btn_cancel_new = SmallButton(script_header, text="✕",
             command=self.cancel_new_profile, fg=S["error"])
@@ -384,7 +419,7 @@ class AutoClickerApp(tk.Tk):
 
         # Selector row
         self.script_sel_frame = ttk.Frame(self.frame_script, style="Card.TFrame")
-        self.script_sel_frame.pack(fill=tk.X, pady=(0, 8))
+        self.script_sel_frame.pack(fill=tk.X, pady=(0, 12))
 
         self.combo_scripts = ttk.Combobox(self.script_sel_frame, state="readonly",
                                           font=(FONT, 10))
@@ -397,14 +432,14 @@ class AutoClickerApp(tk.Tk):
 
         # Text editor
         ttk.Label(self.frame_script, text="Sequence (ms, comma-separated):",
-                  style="Card.TLabel").pack(anchor="w", pady=(0, 3))
-        editor_frame = tk.Frame(self.frame_script, bg=S["input_border"],
+                  style="Card.TLabel").pack(anchor="w", pady=(0, 6))
+        editor_frame = tk.Frame(self.frame_script, bg=S["input_bg"],
                                 bd=0, highlightthickness=0)
-        editor_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 8))
+        editor_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 16))
 
         self.txt_script = tk.Text(editor_frame, height=5,
             bg=S["input_bg"], fg=S["text"], insertbackground=S["accent"],
-            relief="flat", font=(FONT_MONO, 10), padx=10, pady=10,
+            relief="flat", font=(FONT_MONO, 10), padx=12, pady=12,
             selectbackground=S["accent_dim"], selectforeground=S["text"],
             wrap=tk.WORD, bd=0, highlightthickness=0)
         self.txt_script.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
@@ -414,7 +449,7 @@ class AutoClickerApp(tk.Tk):
         self.btn_save = AccentButton(self.frame_script, text="SAVE PROFILE",
             command=self.manual_save_script,
             bg=S["surface2"], fg=S["accent"], hover_bg=S["border"],
-            font_spec=(FONT, 10, "bold"), height=38)
+            font_spec=(FONT, 10, "bold"), height=42)
         self.btn_save.pack(fill=tk.X)
 
         # Populate scripts
@@ -426,14 +461,14 @@ class AutoClickerApp(tk.Tk):
                 self.on_script_change()
 
         # ── Footer ─────────────────────────────────────────
-        self.btn_toggle = AccentButton(container, text="START AUTO CLICKER",
+        self.btn_toggle = AccentButton(container, text="START CLICKING",
             command=self.toggle_clicking,
-            bg=S["accent"], fg="#000000", hover_bg=S["accent_hover"],
-            font_spec=(FONT, 12, "bold"), height=50)
+            bg=S["accent"], fg="#FFFFFF", hover_bg=S["accent_hover"],
+            font_spec=(FONT, 12, "bold"), height=54)
         self.btn_toggle.pack(fill=tk.X, side=tk.BOTTOM)
 
         ttk.Label(container, text="Press F6 to toggle",
-                  style="Subtitle.TLabel").pack(side=tk.BOTTOM, pady=(0, 10))
+                  style="Subtitle.TLabel").pack(side=tk.BOTTOM, pady=(0, 12))
 
         # Init view
         self.toggle_mode_ui()
