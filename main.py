@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import json
 import os
 import threading
@@ -9,21 +9,20 @@ from clicker import AutoClicker
 CONFIG_FILE = "scripts.json"
 
 # ─── Theme ──────────────────────────────────────────────────────────────────────
-# ─── Theme ──────────────────────────────────────────────────────────────────────
 THEME = {
-    "bg":           "#121212",      # Deep matte black/gray
-    "surface":      "#1E1E1E",      # Slightly lighter for cards
-    "surface2":     "#252526",      # For inputs/hovers
-    "border":       "#333333",      # Subtle borders
-    "accent":       "#3B8ED0",      # Modern blue (VS Code-ish)
+    "bg":           "#121212",
+    "surface":      "#1E1E1E",
+    "surface2":     "#252526",
+    "border":       "#333333",
+    "accent":       "#3B8ED0",
     "accent_hover": "#4D9FE3",
     "accent_dim":   "#2A6A9E",
-    "success":      "#4CAF50",      # Muted vibrant green
-    "error":        "#E53935",      # Muted vibrant red
-    "text":         "#E0E0E0",      # Soft white
-    "text_sec":     "#AAAAAA",      # Secondary text
-    "text_dim":     "#666666",      # Disabled/Hint text
-    "input_bg":     "#2D2D2D",      # Inputs should stand out slightly from surface or be recessed
+    "success":      "#4CAF50",
+    "error":        "#E53935",
+    "text":         "#E0E0E0",
+    "text_sec":     "#AAAAAA",
+    "text_dim":     "#666666",
+    "input_bg":     "#2D2D2D",
     "input_border": "#3E3E42",
 }
 
@@ -44,7 +43,7 @@ class AccentButton(tk.Canvas):
         self._hover_bg = hover_bg or THEME["accent_hover"]
         self._font = font_spec or (FONT, 10, "bold")
         self._h = height
-        self._radius = 6 # Subtler rounded corners
+        self._radius = 6
         self._pressed = False
 
         self.configure(height=self._h)
@@ -66,11 +65,9 @@ class AccentButton(tk.Canvas):
         self.delete("all")
         w, h = self.winfo_width(), self.winfo_height()
         
-        # Draw background
         bg = self._bg
         if self._pressed:
-            # Darken slightly on press
-            bg = self._bg # Could blend, but keeping simple for now
+            bg = self._bg
             
         self._round_rect(0, 0, w, h, self._radius, fill=bg, outline="")
         self.create_text(w/2, h/2, text=self._text, fill=self._fg,
@@ -84,7 +81,7 @@ class AccentButton(tk.Canvas):
 
     def _on_leave(self, e):
         self._bg = getattr(self, '_bg_saved', self._bg)
-        self._pressed = False # Reset press state
+        self._pressed = False
         self._draw()
 
     def _on_press(self, e):
@@ -130,7 +127,6 @@ class SmallButton(tk.Canvas):
         s = self._size
         color = fill_fg or self._fg
 
-        # Only draw bg if hovering
         if self._hovering:
             self.create_oval(2, 2, s-2, s-2, fill=THEME["surface2"], outline="")
 
@@ -141,11 +137,9 @@ class SmallButton(tk.Canvas):
                             font=(FONT, 12, "bold"), anchor="center")
 
     def _draw_trash(self, s, color):
-        # Center approx at s/2, s/2. s=28.
         cx, cy = s/2, s/2
         
-        # Bin body
-        # width ~10, height ~12
+        # Bin
         x1, y1 = cx - 5, cy - 4
         x2, y2 = cx + 5, cy + 8
         self.create_rectangle(x1, y1, x2, y2, outline=color, width=1.5)
@@ -159,7 +153,6 @@ class SmallButton(tk.Canvas):
         hx2, hy2 = cx + 2, cy - 7
         self.create_line(hx1, hy1, hx2, hy1, fill=color, width=1.5)
 
-        # Vertical lines
         self.create_line(cx-2, y1+2, cx-2, y2-2, fill=color, width=1)
         self.create_line(cx+2, y1+2, cx+2, y2-2, fill=color, width=1)
 
@@ -215,7 +208,7 @@ class AutoClickerApp(tk.Tk):
             fieldbackground=S["input_bg"], foreground=S["text"],
             insertcolor=S["text"], borderwidth=0, padding=10,
             relief="flat",
-            bordercolor=S["input_bg"], # match bg to look borderless
+            bordercolor=S["input_bg"],
             lightcolor=S["input_bg"],
             darkcolor=S["input_bg"])
         self.style.map("TEntry",
@@ -229,7 +222,7 @@ class AutoClickerApp(tk.Tk):
             foreground=S["text"], arrowcolor=S["text_sec"], arrowsize=14,
             borderwidth=0, padding=10, relief="flat",
             selectbackground=S["input_bg"], selectforeground=S["text"],
-            bordercolor=S["input_bg"], # match bg
+            bordercolor=S["input_bg"],
             lightcolor=S["input_bg"],
             darkcolor=S["input_bg"])
         self.style.map("TCombobox",
@@ -248,6 +241,14 @@ class AutoClickerApp(tk.Tk):
         self.option_add('*TCombobox*Listbox.relief', 'flat')
         self.option_add('*TCombobox*Listbox.borderwidth', '0')
         self.option_add('*TCombobox*Listbox.highlightThickness', '0')
+
+        # Global Scrollbar (Classic) - Fixes Combobox popdown scrollbar
+        self.option_add('*Scrollbar.background', S["surface"])
+        self.option_add('*Scrollbar.troughColor', S["bg"])
+        self.option_add('*Scrollbar.highlightThickness', '0')
+        self.option_add('*Scrollbar.activeBackground', S["accent"])
+        self.option_add('*Scrollbar.borderWidth', '0')
+        self.option_add('*Scrollbar.width', '12')
 
         # Radiobutton
         self.style.configure("TRadiobutton",
@@ -277,7 +278,7 @@ class AutoClickerApp(tk.Tk):
         if self.config:
             self.clicker.set_button(self.config.get("click_button", "left"))
 
-        self._pulse_on = True  # for status dot animation
+        self._pulse_on = True
 
         # ── UI ──
         self.create_widgets()
@@ -323,7 +324,7 @@ class AutoClickerApp(tk.Tk):
 
         # ── Title Row ──────────────────────────────────────
         title_row = ttk.Frame(container)
-        title_row.pack(fill=tk.X, pady=(0, 20)) # More breathing room
+        title_row.pack(fill=tk.X, pady=(0, 20))
 
         ttk.Label(title_row, text="AutoClicker", style="Title.TLabel").pack(
             side=tk.LEFT, anchor="w")
@@ -534,7 +535,23 @@ class AutoClickerApp(tk.Tk):
             # Show success feedback
             self._show_save_success()
         else:
-            messagebox.showwarning("Warning", "Invalid or empty sequence.", parent=self)
+            self._show_save_error()
+
+    def _show_save_error(self):
+        """Show visual feedback that save failed."""
+        S = THEME
+        self.btn_save.set_config(
+            text="⚠ INVALID!",
+            bg=S["error"],
+            fg="#FFFFFF",
+            hover_bg=S["error"]
+        )
+        self.after(1500, lambda: self.btn_save.set_config(
+            text="SAVE PROFILE",
+            bg=S["surface2"],
+            fg=S["accent"],
+            hover_bg=S["border"]
+        ))
     
     def _show_save_success(self):
         """Show visual feedback that save was successful."""
@@ -572,7 +589,7 @@ class AutoClickerApp(tk.Tk):
             self.entry_new_profile.focus()
             self.btn_cancel_new.pack(side=tk.RIGHT)
         except Exception as e:
-            pass  # Silently handle errors
+            pass
 
     def cancel_new_profile(self):
         self.entry_new_profile.pack_forget()
@@ -588,7 +605,6 @@ class AutoClickerApp(tk.Tk):
             self.cancel_new_profile()
             return
         if name in self.config["scripts"]:
-            messagebox.showwarning("Warning", "Profile already exists.", parent=self)
             self.cancel_new_profile()
             return
 
@@ -604,7 +620,6 @@ class AutoClickerApp(tk.Tk):
         self.btn_del_profile.pack(side=tk.RIGHT, padx=(4, 0))
         self.btn_new_profile.pack(side=tk.RIGHT, padx=(4, 0))
         
-        # Find and set the index of the new profile
         try:
             idx = self.script_names.index(name)
             self.combo_scripts.current(idx)
@@ -617,9 +632,6 @@ class AutoClickerApp(tk.Tk):
         if idx < 0:
             return
         name = self.script_names[idx]
-        if not messagebox.askyesno("Delete Profile",
-                f'Delete "{name}"?', parent=self):
-            return
         del self.config["scripts"][name]
         self.save_config()
         self.script_names = list(self.config["scripts"].keys())

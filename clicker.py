@@ -7,8 +7,8 @@ class AutoClicker:
     def __init__(self):
         self.running = False
         self.program_running = True
-        self.delay = 0.1  # Default 100ms
-        self.mode = "fixed" # "fixed" or "sequence"
+        self.delay = 0.1
+        self.mode = "fixed"
         self.sequence_delays = []
         self.sequence_index = 0
         
@@ -19,7 +19,7 @@ class AutoClicker:
 
     def start_clicking(self):
         self.running = True
-        self.sequence_index = 0 # Reset sequence on start
+        self.sequence_index = 0
 
     def stop_clicking(self):
         self.running = False
@@ -56,8 +56,6 @@ class AutoClicker:
     def click_loop(self):
         while self.program_running:
             if self.running:
-                # Debug print to check actual delay
-                
                 delay = self.delay
                 if self.mode == "sequence" and self.sequence_delays:
                      delay = self.sequence_delays[self.sequence_index]
