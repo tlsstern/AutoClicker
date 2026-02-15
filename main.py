@@ -175,7 +175,7 @@ class SmallButton(tk.Canvas):
 class AutoClickerApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("AutoClicker Pro")
+        self.title("AutoClicker")
         self.geometry("420x600")
         self.resizable(False, False)
         self.configure(bg=THEME["bg"])
