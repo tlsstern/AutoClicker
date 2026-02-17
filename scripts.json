@@ -1,6 +1,6 @@
 {
     "normal_interval_ms": 100,
-    "click_button": "left",
+    "click_button": "right",
     "scripts": {
         "default": [
             1000,

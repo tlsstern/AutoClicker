@@ -176,15 +176,32 @@ class AutoClickerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("AutoClicker")
-        self.geometry("420x600")
-        self.resizable(False, False)
+
+        # Get screen dimensions
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        # Calculate initial size (e.g., 25% width, 60% height)
+        initial_width = int(screen_width * 0.25)
+        initial_height = int(screen_height * 0.60)
+
+        # Ensure a reasonable minimum size
+        initial_width = max(initial_width, 420)
+        initial_height = max(initial_height, 600)
+
+        # Center the window
+        x = (screen_width - initial_width) // 2
+        y = (screen_height - initial_height) // 2
+
+        self.geometry(f"{initial_width}x{initial_height}+{x}+{y}")
+        self.resizable(True, True)
         self.configure(bg=THEME["bg"])
 
         # ── ttk Styles ──
         self.style = ttk.Style()
         self.style.theme_use('clam')
 
-        S = THEME  # shortcut
+        S = THEME
 
         self.style.configure(".", background=S["bg"], foreground=S["text"],
                              font=(FONT, 10))
@@ -212,7 +229,7 @@ class AutoClickerApp(tk.Tk):
             lightcolor=S["input_bg"],
             darkcolor=S["input_bg"])
         self.style.map("TEntry",
-            bordercolor=[("focus", S["accent"])], # Subtle hint if needed, or keep flat
+            bordercolor=[("focus", S["accent"])],
             lightcolor=[("focus", S["accent"])],
             darkcolor=[("focus", S["accent"])])
 
@@ -481,12 +498,10 @@ class AutoClickerApp(tk.Tk):
             self.frame_script.pack_forget()
             self.frame_fixed.pack(fill=tk.X)
             self.clicker.set_mode("fixed")
-            self.geometry("420x600")
         else:
             self.frame_fixed.pack_forget()
             self.frame_script.pack(fill=tk.BOTH, expand=True)
             self.clicker.set_mode("sequence")
-            self.geometry("420x720")
 
     # ── Event Handlers ──────────────────────────────────────────────────────────
 
@@ -693,7 +708,6 @@ class AutoClickerApp(tk.Tk):
     def update_status_loop(self):
         if self.clicker.running:
             self.set_running_state()
-            # Pulse the status dot
             self._pulse_on = not self._pulse_on
             fill = THEME["success"] if self._pulse_on else THEME["surface"]
             self.status_dot.itemconfigure("dot", fill=fill)
